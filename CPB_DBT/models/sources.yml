@@ -1,0 +1,5 @@
+sources:
+  - name: BRONZE
+    schema: BRONZE
+    tables:
+      - name: raw_trips

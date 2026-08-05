@@ -1,0 +1,12 @@
+CPB_AIRFLOW/config/*
+CPB_AIRFLOW/logs/*
+CPB_AIRFLOW/plugins/*
+CPB_AIRFLOW/.env
+CPENV/*
+
+CPB_DBT/logs/*
+CPB_DBT/target/*
+CPB_DBT/dbt_packages/*
+CPB_DBT/Data/Processed/*.duckdb
+CPB_DBT/Data/Processed/*.duckdb.wal
+CPB_DBT/Data/Raw/*
