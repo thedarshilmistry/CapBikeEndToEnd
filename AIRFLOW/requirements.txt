@@ -1,0 +1,5 @@
+apache-airflow-providers-postgres
+pandas
+requests
+sqlalchemy
+psycopg2

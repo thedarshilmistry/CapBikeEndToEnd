@@ -1,0 +1,45 @@
+# ---- secrets ----
+.env
+.env.*
+!.env.example
+env.ps1
+*.pem
+*.key
+
+# ---- python ----
+CPBENV/
+venv/
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ipynb_checkpoints/
+
+# ---- dbt ----
+dbt/**/target/
+dbt/**/dbt_packages/
+dbt/**/logs/
+.user.yml
+
+# ---- airflow ----
+logs/
+airflow.cfg
+airflow.db
+webserver_config.py
+standalone_admin_password.txt
+
+# ---- data ----
+data/
+*.csv
+*.parquet
+*.duckdb
+*.duckdb.wal
+!data/.gitkeep
+
+# ---- editors / os ----
+.vscode/
+.idea/
+Thumbs.db
+desktop.ini
+*.swp
