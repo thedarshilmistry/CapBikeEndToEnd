@@ -1,4 +1,4 @@
-{{ config(materialized='table', schema='silver') }}
+{{ config(materialized='table', schema='bronze') }}
 
 WITH drift_start AS (
     SELECT start_station_id

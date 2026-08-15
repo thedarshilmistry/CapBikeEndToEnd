@@ -1,0 +1,65 @@
+version: 2
+
+models:
+  - name: trips
+    description: "Cleaned trip records from bronze, quarantined rows excluded."
+    columns:
+      - name: ride_id
+        tests:
+          - unique
+          - not_null
+
+      - name: rideable_type
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['classic_bike', 'electric_bike', 'docked_bike']
+
+      - name: start_time
+        tests: 
+          - not_null
+      
+      - name: end_time
+        tests: 
+          - not_null
+
+      - name: start_stn_id
+        tests:
+          - relationships:
+              to: ref('DIM_STATIONS')
+              field: stn_id
+
+      - name: start_stn_name
+        tests:
+          - relationships:
+              to: ref('DIM_STATIONS')
+              field: stn_name
+    
+      - name: start_lat
+        tests: 
+          - not_null
+
+      - name: start_lng
+        tests: 
+          - not_null
+
+      - name: end_stn_id
+        tests:
+          - relationships:
+              to: ref('DIM_STATIONS')
+              field: stn_id
+
+      - name: end_stn_name
+        tests:
+          - relationships:
+              to: ref('DIM_STATIONS')
+              field: stn_name
+
+      - name: rider_type
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['member', 'casual']
+
+  - name: quarantine
+    description: "Rows failing validation, retained for review and repair."
