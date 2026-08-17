@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Capital Bikeshare · Gold Layer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root{
+    --ink:#0B1017; --surface:#141C26; --raised:#1B2531; --rule:#25323F;
+    --signal:#E23A2E; --teal:#3FBFB0; --limestone:#EDE7DA; --steel:#7A8CA3; --dim:#4E5F73;
+    --mono:'IBM Plex Mono',ui-monospace,monospace;
+    --sans:'IBM Plex Sans',system-ui,sans-serif;
+    --cond:'IBM Plex Sans Condensed','IBM Plex Sans',sans-serif;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--ink);color:var(--limestone);font-family:var(--sans);padding:24px;}
+  header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;
+    gap:16px;padding-bottom:20px;margin-bottom:24px;border-bottom:1px solid var(--rule);}
+  .eyebrow{font-family:var(--cond);font-size:12px;text-transform:uppercase;
+    letter-spacing:.22em;color:var(--signal);margin-bottom:4px;}
+  h1{font-family:var(--cond);font-weight:600;font-size:26px;margin:0;}
+  .controls{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+  input[type=date],select{background:var(--surface);border:1px solid var(--rule);
+    color:var(--limestone);font-family:var(--mono);font-size:12px;padding:6px 8px;border-radius:4px;}
+  button{background:var(--raised);border:1px solid var(--rule);color:var(--limestone);
+    font-family:var(--mono);font-size:12px;padding:6px 12px;border-radius:4px;cursor:pointer;}
+  button:hover{border-color:var(--signal);}
+  button:focus-visible,input:focus-visible{outline:2px solid var(--signal);outline-offset:2px;}
+  .metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:24px;}
+  .metric{background:var(--surface);border:1px solid var(--rule);border-radius:8px;padding:16px;}
+  .metric .label{font-family:var(--cond);font-size:11px;text-transform:uppercase;
+    letter-spacing:.16em;color:var(--steel);margin-bottom:8px;}
+  .metric .value{font-family:var(--mono);font-size:30px;font-weight:500;line-height:1;}
+  .metric .sub{font-size:12px;color:var(--dim);margin-top:6px;}
+  .panel{background:var(--surface);border:1px solid var(--rule);border-radius:8px;
+    padding:20px;margin-bottom:16px;}
+  .panel h2{font-family:var(--cond);font-size:12px;text-transform:uppercase;
+    letter-spacing:.18em;margin:0 0 16px;font-weight:600;}
+  .panel .head{display:flex;justify-content:space-between;align-items:baseline;gap:12px;}
+  .note{font-family:var(--mono);font-size:11px;color:var(--dim);}
+  .grid{display:grid;grid-template-columns:2fr 1fr;gap:16px;}
+  @media(max-width:900px){.grid{grid-template-columns:1fr;}}
+  .chartwrap{position:relative;height:280px;}
+  .chartwrap.short{height:220px;}
+  .station{display:flex;align-items:center;gap:12px;margin-bottom:10px;}
+  .station .rank{font-family:var(--mono);font-size:11px;color:var(--dim);width:22px;text-align:right;}
+  .station .sid{font-family:var(--mono);font-size:11px;color:var(--steel);width:52px;}
+  .station .body{flex:1;min-width:0;}
+  .station .nm{font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:5px;}
+  .track{height:6px;background:var(--raised);border-radius:3px;}
+  .fill{height:6px;border-radius:3px;background:var(--steel);}
+  .fill.top{background:var(--signal);}
+  .station .n{font-family:var(--mono);font-size:13px;width:64px;text-align:right;}
+  .status{font-family:var(--mono);font-size:11px;padding:4px 10px;border-radius:999px;
+    border:1px solid var(--rule);color:var(--steel);}
+  .status.ok{border-color:var(--teal);color:var(--teal);}
+  .status.err{border-color:var(--signal);color:var(--signal);}
+  .empty{font-family:var(--mono);font-size:12px;color:var(--dim);padding:24px 0;text-align:center;}
+  footer{margin-top:24px;padding-top:16px;border-top:1px solid var(--rule);
+    font-family:var(--mono);font-size:11px;color:var(--dim);}
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <div class="eyebrow">Capital Bikeshare · Gold Layer</div>
+    <h1 id="title">Ridership</h1>
+  </div>
+  <div class="controls">
+    <input type="date" id="start" aria-label="Start date" />
+    <input type="date" id="end" aria-label="End date" />
+    <button id="apply">Apply</button>
+    <span class="status" id="status">connecting</span>
+  </div>
+</header>
+
+<div class="metrics" id="metrics"></div>
+
+<div class="panel">
+  <div class="head">
+    <h2>Hourly rhythm</h2>
+    <span class="note">departures per hour of local time</span>
+  </div>
+  <div class="chartwrap"><canvas id="hourly"></canvas></div>
+</div>
+
+<div class="grid">
+  <div class="panel">
+    <div class="head">
+      <h2>Daily volume</h2>
+      <span class="note">holidays highlighted</span>
+    </div>
+    <div class="chartwrap short"><canvas id="daily"></canvas></div>
+  </div>
+  <div class="panel">
+    <div class="head"><h2>Bike type</h2></div>
+    <div class="chartwrap short"><canvas id="mix"></canvas></div>
+  </div>
+</div>
+
+<div class="panel">
+  <div class="head">
+    <h2>Busiest origins</h2>
+    <span class="note">FCT_TRIPS × DIM_STATIONS</span>
+  </div>
+  <div id="stations"></div>
+</div>
+
+<footer id="foot">Reading gold.FCT_TRIPS, gold.DIM_STATIONS, gold.DIM_DATE</footer>
+
+<script>
+const C = {
+  signal:'#E23A2E', teal:'#3FBFB0', limestone:'#EDE7DA',
+  steel:'#7A8CA3', dim:'#4E5F73', rule:'#25323F', raised:'#1B2531',
+};
+const mono = "'IBM Plex Mono', monospace";
+let charts = {};
+
+Chart.defaults.color = C.dim;
+Chart.defaults.font.family = mono;
+Chart.defaults.font.size = 11;
+
+function qs(){
+  const s = document.getElementById('start').value;
+  const e = document.getElementById('end').value;
+  const p = new URLSearchParams();
+  if(s) p.set('start', s);
+  if(e) p.set('end', e);
+  return p.toString() ? '?' + p.toString() : '';
+}
+
+async function get(path){
+  const r = await fetch('/api/' + path + qs());
+  if(!r.ok) throw new Error(path + ' → ' + r.status);
+  return r.json();
+}
+
+function setStatus(text, cls){
+  const el = document.getElementById('status');
+  el.textContent = text;
+  el.className = 'status ' + (cls || '');
+}
+
+function metric(label, value, sub){
+  return `<div class="metric">
+    <div class="label">${label}</div>
+    <div class="value">${value}</div>
+    ${sub ? `<div class="sub">${sub}</div>` : ''}
+  </div>`;
+}
+
+function destroy(k){ if(charts[k]){ charts[k].destroy(); delete charts[k]; } }
+
+async function loadKpis(){
+  const k = await get('kpis');
+  const share = k.trips ? Math.round(100 * k.member_trips / k.trips) : 0;
+  document.getElementById('metrics').innerHTML =
+      metric('Trips', Number(k.trips).toLocaleString(), 'in selected range')
+    + metric('Member share', share + '%', 'of all departures')
+    + metric('Avg duration', (k.avg_minutes ?? '—') + ' min', 'start to end')
+    + metric('Stations used', Number(k.stations_used).toLocaleString(), 'as trip origin');
+}
+
+async function loadHourly(){
+  const d = await get('hourly');
+  destroy('hourly');
+  charts.hourly = new Chart(document.getElementById('hourly'), {
+    type:'bar',
+    data:{
+      labels: d.map(r => String(r.hour).padStart(2,'0')),
+      datasets:[
+        { label:'Member', data:d.map(r=>r.member), backgroundColor:C.signal, stack:'a' },
+        { label:'Casual', data:d.map(r=>r.casual), backgroundColor:C.teal,   stack:'a' },
+      ],
+    },
+    options:{
+      maintainAspectRatio:false,
+      plugins:{ legend:{ labels:{ color:C.steel, boxWidth:10 } } },
+      scales:{
+        x:{ stacked:true, grid:{ display:false }, border:{ color:C.rule } },
+        y:{ stacked:true, grid:{ color:C.rule }, border:{ display:false } },
+      },
+    },
+  });
+}
+
+async function loadDaily(){
+  const d = await get('daily');
+  destroy('daily');
+  charts.daily = new Chart(document.getElementById('daily'), {
+    type:'line',
+    data:{
+      labels: d.map(r => r.day),
+      datasets:[{
+        label:'Trips',
+        data: d.map(r => r.trips),
+        borderColor: C.signal,
+        backgroundColor: 'rgba(226,58,46,0.12)',
+        fill:true, tension:0.25, borderWidth:2,
+        pointRadius: d.map(r => r.is_holiday ? 5 : 0),
+        pointBackgroundColor: C.teal,
+        pointBorderColor: C.teal,
+      }],
+    },
+    options:{
+      maintainAspectRatio:false,
+      plugins:{
+        legend:{ display:false },
+        tooltip:{ callbacks:{ afterBody:(items)=>{
+          const row = d[items[0].dataIndex];
+          if(!row.is_holiday) return '';
+          const names = Array.isArray(row.holiday_names) ? row.holiday_names : [];
+          return names.length ? 'Holiday: ' + names.join(', ') : 'Holiday';
+        }}},
+      },
+      scales:{
+        x:{ grid:{ display:false }, border:{ color:C.rule },
+            ticks:{ maxTicksLimit:10 } },
+        y:{ grid:{ color:C.rule }, border:{ display:false } },
+      },
+    },
+  });
+}
+
+async function loadMix(){
+  const d = await get('bike_mix');
+  destroy('mix');
+  charts.mix = new Chart(document.getElementById('mix'), {
+    type:'doughnut',
+    data:{
+      labels: d.map(r => r.rideable_type),
+      datasets:[{
+        data: d.map(r => r.trips),
+        backgroundColor: d.map(r =>
+          r.rideable_type === 'electric_bike' ? C.teal :
+          r.rideable_type === 'classic_bike'  ? C.steel : C.dim),
+        borderWidth:0,
+      }],
+    },
+    options:{
+      maintainAspectRatio:false, cutout:'62%',
+      plugins:{ legend:{ position:'bottom', labels:{ color:C.steel, boxWidth:10 } } },
+    },
+  });
+}
+
+async function loadStations(){
+  const d = await get('stations');
+  const el = document.getElementById('stations');
+  if(!d.length){ el.innerHTML = '<div class="empty">No trips in range.</div>'; return; }
+  const max = d[0].departures;
+  el.innerHTML = d.map((s,i) => `
+    <div class="station">
+      <span class="rank">${String(i+1).padStart(2,'0')}</span>
+      <span class="sid">${s.stn_id}</span>
+      <div class="body">
+        <div class="nm">${s.stn_name}</div>
+        <div class="track"><div class="fill ${i===0?'top':''}"
+             style="width:${(s.departures/max*100).toFixed(1)}%"></div></div>
+      </div>
+      <span class="n">${Number(s.departures).toLocaleString()}</span>
+    </div>`).join('');
+}
+
+async function refresh(){
+  setStatus('loading');
+  try{
+    await Promise.all([loadKpis(), loadHourly(), loadDaily(), loadMix(), loadStations()]);
+    setStatus('live', 'ok');
+  }catch(err){
+    setStatus('error', 'err');
+    document.getElementById('foot').textContent = String(err);
+  }
+}
+
+async function init(){
+  try{
+    const r = await fetch('/api/range');
+    const range = await r.json();
+    if(range.min_date){
+      document.getElementById('start').value = range.min_date;
+      document.getElementById('end').value = range.max_date;
+      document.getElementById('title').textContent =
+        `Ridership · ${range.min_date} to ${range.max_date}`;
+    }
+  }catch(e){ /* fall through to refresh, which will surface the error */ }
+  document.getElementById('apply').addEventListener('click', refresh);
+  refresh();
+}
+
+init();
+</script>
+</body>
+</html>
